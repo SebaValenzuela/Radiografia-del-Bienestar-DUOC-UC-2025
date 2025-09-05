@@ -5,7 +5,7 @@ import os
 import time
 
 # Estilo global para los gráficos
-plt.style.use('seaborn-whitegrid')
+plt.style.use('ggplot')
 plt.rcParams.update({
     'font.size': 12,
     'figure.dpi': 150
