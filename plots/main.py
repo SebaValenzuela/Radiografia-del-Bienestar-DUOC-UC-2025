@@ -50,10 +50,24 @@ def crear_grafico_pie(df, col_respuestas, col_total, output_path):
 
 def crear_grafico_barras(df, col_categoria, col_valor, output_path):
     fig, ax = plt.subplots(figsize=(6,4))
-    bars = ax.bar(df[col_categoria], df[col_valor], color='#2196F3', edgecolor='black')
-    
-    ax.set_ylim(0, 100)
+    colors = ["#000000", "#F78DA7", "#CF2E2E", "#FF6900", "#FCB900", "#7BDCB5", "#00D084", "#8ED1FC", "#156082"]
+    bars = ax.bar(df[col_categoria], df[col_valor], color=colors, edgecolor='black')
+
+    ax.set_ylim(0, 0.1)
     ax.set_xticks([])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('black')   
+    ax.spines['bottom'].set_color('black')
+
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width()/2,  # posición x centrada
+            height + 0.002,                   # un poco arriba de la barra
+            f"{height:.2f}%",             # formato porcentaje
+            ha='center', va='bottom', fontsize=9, fontweight='bold'
+        )
     
     plt.tight_layout()
     plt.savefig(output_path, transparent=True, bbox_inches='tight')
