@@ -1,63 +1,59 @@
 import matplotlib.pyplot as plt
 from pptx import Presentation
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 import os
-import time
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
 
 # Estilo global para los gráficos
-plt.style.use('seaborn-whitegrid')
+plt.style.use('ggplot')
 plt.rcParams.update({
     'font.size': 12,
     'figure.dpi': 150
 })
 
-def crear_grafico_anillo(df, col_respuestas, col_total, output_path):
+def crear_grafico_pie(df, col_respuestas, col_total, output_path):
     responded = df[col_respuestas].sum()
     not_responded = df[col_total].sum() - responded
     sizes = [responded, not_responded]
-    labels = ['Encuestas respondidas', 'Encuestas no respondidas']
-    colors = ['#F8B416', '#000000']  # amarillo y negro
+    labels_base = ['Encuestas respondidas', 'Encuestas no respondidas']
+    
+    # --- Crear labels con porcentaje y valor ---
+    total = sum(sizes)
+    labels = [f"{label}\n{size} ({size/total*100:.2f}%)"
+              for label, size in zip(labels_base, sizes)]
+    
+    colors = ['#000000', '#F8B416']  # negro y amarillo
     explode = (0.05, 0.05)
 
     fig, ax = plt.subplots(figsize=(5,5))
-    wedges, texts, autotexts = ax.pie(
+
+    wedges, texts = ax.pie(
         sizes,
         labels=labels,
-        autopct='%1.1f%%',
         startangle=90,
         colors=colors,
         explode=explode,
         wedgeprops={'edgecolor':'white', 'linewidth':1.5},
-        textprops={'fontsize':12}
+        textprops={'fontsize':12},
     )
 
-    # --- Convertir en anillo ---
-    centre_circle = plt.Circle((0,0),0.60,fc='white')
-    fig.gca().add_artist(centre_circle)
+    # --- Anillo blanco en el centro ---
+    centre_circle = plt.Circle((0,-0.05), 0.60, fc='white')
+    ax.add_artist(centre_circle)
 
     ax.axis('equal')  # círculo perfecto
     plt.tight_layout()
     plt.savefig(output_path, transparent=True, bbox_inches='tight')
+    print("Gráfico de pastel guardado en:", output_path)
     plt.close()
 
 def crear_grafico_barras(df, col_categoria, col_valor, output_path):
     fig, ax = plt.subplots(figsize=(6,4))
     bars = ax.bar(df[col_categoria], df[col_valor], color='#2196F3', edgecolor='black')
     
-    ax.set_ylabel('Porcentaje de respuestas', fontsize=12)
-    ax.set_xlabel('')
     ax.set_ylim(0, 100)
-    ax.set_xticks(range(len(df[col_categoria])))
-    ax.set_xticklabels(df[col_categoria], rotation=45, ha='right', fontsize=11)
-    
-    # Etiquetas encima de cada barra
-    for bar in bars:
-        height = bar.get_height()
-        ax.annotate(f'{height:.1f}%',
-                    xy=(bar.get_x() + bar.get_width() / 2, height),
-                    xytext=(0,3),
-                    textcoords="offset points",
-                    ha='center', va='bottom', fontsize=10)
+    ax.set_xticks([])
     
     plt.tight_layout()
     plt.savefig(output_path, transparent=True, bbox_inches='tight')
@@ -66,18 +62,50 @@ def crear_grafico_barras(df, col_categoria, col_valor, output_path):
 def rellenar_tabla(slide, placeholder_name, df):
     for shape in slide.shapes:
         if shape.has_text_frame and placeholder_name in shape.text:
-            rows, cols = df.shape[0]+1, df.shape[1]
+            rows, cols = df.shape[0] + 1, df.shape[1]
             left, top, width, height = shape.left, shape.top, shape.width, shape.height
-            table = slide.shapes.add_table(rows, cols, left, top, width, height).table
+            table = slide.shapes.add_table(
+                rows, cols, left, top, int(width), int(height)
+            ).table
 
-            # Cabeceras
+            # --- Ajustar anchos de columnas uniformemente ---
+            for col in table.columns:
+                col.width = int((width*0.8) // cols)
+
+            # --- Ajustar altos de filas uniformemente ---
+            for row in table.rows:
+                row.height = int((height*0.6) // rows)
+
+            # --- Cabeceras ---
             for j, col_name in enumerate(df.columns):
-                table.cell(0, j).text = str(col_name)
+                cell = table.cell(0, j)
+                cell.text = str(col_name)
 
-            # Contenido
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor(142, 209, 252)
+
+                # Estilo de cabecera
+                text_frame = cell.text_frame
+                p = text_frame.paragraphs[0]
+                p.alignment = PP_ALIGN.CENTER
+                run = p.runs[0]
+                run.font.size = Pt(9)
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(0, 0, 0)
+
+            # --- Contenido ---
             for i in range(df.shape[0]):
                 for j in range(df.shape[1]):
-                    table.cell(i+1, j).text = str(df.iloc[i,j])
+                    cell = table.cell(i + 1, j)
+                    cell.text = str(df.iloc[i, j])
+
+                    # Estilo de contenido
+                    text_frame = cell.text_frame
+                    p = text_frame.paragraphs[0]
+                    p.alignment = PP_ALIGN.CENTER
+                    run = p.runs[0]
+                    run.font.size = Pt(8)
+                    run.font.color.rgb = RGBColor(50, 50, 50)
 
             shape.text = ""  # eliminar placeholder
             break
@@ -94,21 +122,16 @@ def generar_presentacion(template_path, output_path, resumen_sede, resumen_escue
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     prs = Presentation(template_path)
 
-    # --- Crear nombres únicos de archivo ---
-    timestamp = int(time.time())
-    grafico_anillo_file = f"grafico_anillo_{timestamp}.png"
-    grafico_barras_file = f"grafico_barras_{timestamp}.png"
-
     # --- Crear gráficos ---
-    crear_grafico_anillo(resumen_sede, 'RESPUESTAS', 'N_ALUMNOS', grafico_anillo_file)
-    crear_grafico_barras(resumen_escuela, 'ESCUELA', '%', grafico_barras_file)
+    crear_grafico_pie(resumen_sede, 'Respuestas', 'Alumnos', "grafico_anillo.png")
+    crear_grafico_barras(resumen_escuela, 'ESCUELA', '%', "grafico_barras.png")
 
     # --- Reemplazar placeholders ---
     for slide in prs.slides:
         rellenar_tabla(slide, "TABLE_PLACEHOLDER_1", resumen_sede)
         rellenar_tabla(slide, "TABLE_PLACEHOLDER_2", resumen_escuela)
-        rellenar_grafico(slide, "CHART_PLACEHOLDER_1", grafico_anillo_file)
-        rellenar_grafico(slide, "CHART_PLACEHOLDER_2", grafico_barras_file)
+        rellenar_grafico(slide, "CHART_PLACEHOLDER_1", "grafico_anillo.png")
+        rellenar_grafico(slide, "CHART_PLACEHOLDER_2", "grafico_barras.png")
 
     prs.save(output_path)
     print(f"Presentación generada en '{output_path}'")

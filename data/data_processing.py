@@ -21,18 +21,18 @@ def marcar_respuestas(df_alumnos: pd.DataFrame, df_encuesta: pd.DataFrame) -> pd
 
 def resumen_por_sede(df_alumnos: pd.DataFrame) -> pd.DataFrame:
     tabla = df_alumnos.groupby('SEDE').agg(
-        N_ALUMNOS=('EMAIL', 'count'),
-        RESPUESTAS=('RESPONDIO', 'sum')
+        Alumnos=('EMAIL', 'count'),
+        Respuestas=('RESPONDIO', 'sum')
     ).reset_index()
-    tabla['%'] = (tabla['RESPUESTAS'] / tabla['N_ALUMNOS'] * 100).round(2)
+    tabla['%'] = (tabla['Respuestas'] / tabla['Alumnos'] * 100).round(2)
     return tabla
 
 def resumen_por_escuela(df_alumnos: pd.DataFrame) -> pd.DataFrame:
     tabla = df_alumnos.groupby('ESCUELA').agg(
-        N_ALUMNOS=('EMAIL', 'count'),
-        RESPUESTAS=('RESPONDIO', 'sum')
+        Alumnos=('EMAIL', 'count'),
+        Respuestas=('RESPONDIO', 'sum')
     ).reset_index()
-    tabla['%'] = (tabla['RESPUESTAS'] / tabla['N_ALUMNOS'] * 100).round(2)
+    tabla['%'] = (tabla['Respuestas'] / tabla['Alumnos'] * 100).round(2)
     return tabla
 
 def guardar_resumen(df_resumen: pd.DataFrame, file_path: str):
