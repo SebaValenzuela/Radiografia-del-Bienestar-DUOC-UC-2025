@@ -82,15 +82,12 @@ def rellenar_tabla(slide, placeholder_name, df):
                 rows, cols, left, top, int(width), int(height)
             ).table
 
-            # --- Ajustar anchos de columnas uniformemente ---
             for col in table.columns:
                 col.width = int((width*0.8) // cols)
 
-            # --- Ajustar altos de filas uniformemente ---
             for row in table.rows:
                 row.height = int((height*0.6) // rows)
 
-            # --- Cabeceras ---
             for j, col_name in enumerate(df.columns):
                 cell = table.cell(0, j)
                 cell.text = str(col_name)
@@ -98,7 +95,6 @@ def rellenar_tabla(slide, placeholder_name, df):
                 cell.fill.solid()
                 cell.fill.fore_color.rgb = RGBColor(142, 209, 252)
 
-                # Estilo de cabecera
                 text_frame = cell.text_frame
                 p = text_frame.paragraphs[0]
                 p.alignment = PP_ALIGN.CENTER
@@ -106,8 +102,15 @@ def rellenar_tabla(slide, placeholder_name, df):
                 run.font.size = Pt(9)
                 run.font.bold = True
                 run.font.color.rgb = RGBColor(0, 0, 0)
+            
+            if "%" in df.columns:
+                valores = df["%"]
+                top3_idx = valores.nlargest(3).index
+                bottom3_idx = valores.nsmallest(3).index
+            else:
+                top3_idx, bottom3_idx = [], []
 
-            # --- Contenido ---
+
             for i in range(df.shape[0]):
                 for j in range(df.shape[1]):
                     cell = table.cell(i + 1, j)
@@ -120,6 +123,14 @@ def rellenar_tabla(slide, placeholder_name, df):
                     run = p.runs[0]
                     run.font.size = Pt(8)
                     run.font.color.rgb = RGBColor(50, 50, 50)
+                
+                    if df.columns[j] == "%":
+                        if i in top3_idx:
+                            cell.fill.solid()
+                            cell.fill.fore_color.rgb = RGBColor(11, 241, 30)  # verde
+                        elif i in bottom3_idx:
+                            cell.fill.solid()
+                            cell.fill.fore_color.rgb = RGBColor(229, 239, 29)  # amarillo
 
             shape.text = ""  # eliminar placeholder
             break
