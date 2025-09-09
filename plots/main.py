@@ -148,7 +148,7 @@ def generar_presentacion(template_path, output_path, resumen_sede, resumen_escue
     prs = Presentation(template_path)
 
     # --- Crear gráficos ---
-    crear_grafico_pie(resumen_sede, 'Respuestas', 'Alumnos', "grafico_anillo.png")
+    crear_grafico_pie(resumen_sede, 'Respuestas', 'Estudiantes', "grafico_anillo.png")
     crear_grafico_barras(resumen_escuela, 'ESCUELA', '%', "grafico_barras.png")
 
     # --- Reemplazar placeholders ---
