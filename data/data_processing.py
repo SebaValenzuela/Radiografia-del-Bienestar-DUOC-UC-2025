@@ -9,9 +9,9 @@ def load_encuesta(file_path: str) -> pd.DataFrame:
     return df
 
 def load_estudiantes(file_path: str) -> pd.DataFrame:
-    df = pd.read_excel(file_path, sheet_name="Universo Final")
+    df = pd.read_excel(file_path, sheet_name="Universo Consolidado")
     if 'EMAIL' in df.columns:
-        df['EMAIL'] = df['EMAIL'].str.replace(r'@.*', '', regex=True)
+        df['EMAIL'] = df['EMAIL'].str.replace(r'@.*', '', regex=True).str.lower()
     return df
 
 def generar_sedes_matriculas(input_file: str, output_file: str):
@@ -194,22 +194,6 @@ def resumen_por_escuela(df_estudiantes: pd.DataFrame, df_cantidad_estudiantes: p
     return resumen[['ESCUELA', 'Cantidad de estudiantes', 'Cantidad de respuestas', '% de avance respecto a total']]
 
 def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiantes: pd.DataFrame, n_referencial_file: str = None) -> pd.DataFrame:
-    """
-    Genera un resumen combinando SEDE y ESCUELA con la cantidad de estudiantes,
-    cantidad de respuestas, porcentaje de avance, N referencial (opcional) y
-    encuestas restantes para N referencial.
-    Detecta sedes y escuelas en la misma columna y agrupa las escuelas por sede.
-
-    Devuelve un DataFrame con columnas:
-        - SEDE
-        - ESCUELA
-        - Cantidad de estudiantes
-        - Cantidad de respuestas
-        - % de avance respecto a total
-        - N referencial (si se entrega n_referencial_file)
-        - Encuestas restantes para N referencial (si N referencial existe)
-    """
-
     sedes = [
         "Alameda",
         "Antonio Varas",
@@ -282,12 +266,21 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
     })
 
     online_extra = pd.DataFrame([
-        {"SEDE": "Online", "ESCUELA": "Administración y Negocios", "Cantidad de estudiantes": 1012, "Cantidad de respuestas": 164},
-        {"SEDE": "Online", "ESCUELA": "Construcción", "Cantidad de estudiantes": 45, "Cantidad de respuestas": 37},
-        {"SEDE": "Online", "ESCUELA": "Diseño", "Cantidad de estudiantes": 61, "Cantidad de respuestas": 47},
-        {"SEDE": "Online", "ESCUELA": "Informática y Telecomunicaciones", "Cantidad de estudiantes": 726, "Cantidad de respuestas": 155},
-        {"SEDE": "Online", "ESCUELA": "Ingeniería, Medio Ambiente y Recursos Naturales", "Cantidad de estudiantes": 49, "Cantidad de respuestas": 39},
+        {"SEDE": "Online", "ESCUELA": "Administración y Negocios", "Cantidad de estudiantes": 1012},
+        {"SEDE": "Online", "ESCUELA": "Construcción", "Cantidad de estudiantes": 45},
+        {"SEDE": "Online", "ESCUELA": "Diseño", "Cantidad de estudiantes": 61},
+        {"SEDE": "Online", "ESCUELA": "Informática y Telecomunicaciones", "Cantidad de estudiantes": 726},
+        {"SEDE": "Online", "ESCUELA": "Ingeniería, Medio Ambiente y Recursos Naturales", "Cantidad de estudiantes": 49},
     ])
+
+    online_extra['Cantidad de respuestas'] = online_extra.apply(
+        lambda x: df_estudiantes.loc[
+            (df_estudiantes['SEDE'].str.upper() == "ONLINE") &
+            (df_estudiantes['ESCUELA'] == x['ESCUELA']),
+            'RESPONDIO'
+        ].sum(),
+        axis=1
+    )
 
     df_resumen = pd.concat([df_resumen, online_extra], ignore_index=True)
 

@@ -6,6 +6,7 @@ from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 import numpy as np
 import matplotlib.ticker as mticker
+import pandas as pd
 
 # Estilo global para los gráficos
 plt.style.use('ggplot')
@@ -54,24 +55,56 @@ def crear_grafico_pie(df, col_respuestas, col_total, output_path):
 
 def crear_grafico_barras(df, col_categoria, col_valor, output_path, fontsize=12):
     fig, ax = plt.subplots(figsize=(6,4))
-    x = np.arange(len(df[col_categoria]))
-    bars = ax.bar(x, df[col_valor], edgecolor='black', color='royalblue',width=0.4)
-    grid_color = '#CCCCCC'
-    grid_linestyle = '-'
 
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 10))
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter())
+    df_plot = df.copy()
+
+    if col_valor not in df_plot.columns:
+        raise ValueError(f"Columna '{col_valor}' no encontrada en el DataFrame")
+
+    s = df_plot[col_valor]
+
+    s_str = s.astype(str).str.replace(r'\s+', '', regex=True)
+    s_clean = s_str.str.rstrip('%').str.replace(',', '.', regex=False)
+
+    s_num = pd.to_numeric(s_clean, errors='coerce')
+
+    if pd.notna(s_num.max()) and s_num.max() <= 1.1:
+        s_num = s_num * 100
+
+    s_num = s_num.fillna(0)
+
+    df_plot['_plot_val'] = s_num
+
+    x = np.arange(len(df_plot))
+    bars = ax.bar(
+        x,
+        df_plot['_plot_val'],
+        color='#1f77b4',      # azul por defecto (puedes poner otro código HEX)
+        edgecolor='black',
+        width=0.4
+    )
+
+    ymax = max(100, df_plot['_plot_val'].max() * 1.1)
+    ax.set_ylim(0, 20)
+
+    # mostrar eje como porcentaje (0..100 -> "0%..100%")
+    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=100, decimals=0))
+
+    # configuración visual similar a la original
     ax.tick_params(left=False, bottom=False)
     ax.set_xticks(x)
-    ax.set_xticklabels(df[col_categoria], rotation=45, ha='right', fontsize=fontsize)
+    ax.set_xticklabels(df_plot[col_categoria], rotation=45, ha='right', fontsize=fontsize)
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
+
+    grid_color = '#CCCCCC'
+    grid_linestyle = '-'
     ax.yaxis.grid(True, color=grid_color, linestyle=grid_linestyle)
     ax.xaxis.grid(False)
-    
+
     plt.tight_layout()
     plt.savefig(output_path, transparent=True, bbox_inches='tight')
     plt.close()
