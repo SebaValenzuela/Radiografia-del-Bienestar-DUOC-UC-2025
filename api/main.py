@@ -68,12 +68,3 @@ def get_full_survey():
         print("Warning: 'EMAIL' or 'PERMA23' column not found in the data.")
     
     return df
-
-# # --- Usar la función y guardar en XLSX ---
-# df = get_full_survey()
-
-# if 'EMAIL' in df.columns:
-#     df['EMAIL'] = df['EMAIL'].str.replace(r'@.*', '', regex=True)
-
-# df.to_excel("../data/encuesta_completa.xlsx", index=False)  # guarda en el mismo directorio
-# print("Archivo encuesta_completa.xlsx generado con éxito")

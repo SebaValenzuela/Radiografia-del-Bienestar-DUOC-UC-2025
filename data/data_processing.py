@@ -262,7 +262,7 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
             escuelas_asignadas.append(nombre)
 
             # Cantidad de estudiantes desde df_cantidad_estudiantes
-            cantidad_estudiantes = row.get('Cantidad de estudiantes', 0)
+            cantidad_estudiantes = int(row.get('Cantidad de estudiantes', 0) or 0)
             estudiantes_asignados.append(cantidad_estudiantes)
 
             # Calcular cantidad de respuestas desde df_estudiantes
@@ -280,6 +280,16 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
         'Cantidad de estudiantes': estudiantes_asignados,
         'Cantidad de respuestas': respuestas_asignadas
     })
+
+    online_extra = pd.DataFrame([
+        {"SEDE": "Online", "ESCUELA": "Administración y Negocios", "Cantidad de estudiantes": 1012, "Cantidad de respuestas": 164},
+        {"SEDE": "Online", "ESCUELA": "Construcción", "Cantidad de estudiantes": 45, "Cantidad de respuestas": 37},
+        {"SEDE": "Online", "ESCUELA": "Diseño", "Cantidad de estudiantes": 61, "Cantidad de respuestas": 47},
+        {"SEDE": "Online", "ESCUELA": "Informática y Telecomunicaciones", "Cantidad de estudiantes": 726, "Cantidad de respuestas": 155},
+        {"SEDE": "Online", "ESCUELA": "Ingeniería, Medio Ambiente y Recursos Naturales", "Cantidad de estudiantes": 49, "Cantidad de respuestas": 39},
+    ])
+
+    df_resumen = pd.concat([df_resumen, online_extra], ignore_index=True)
 
     # Agregar porcentaje de avance
     df_resumen['% de avance respecto a total'] = (
@@ -307,10 +317,6 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
 
     return df_resumen
 
-
-
-
-
 def guardar_resumen(df_resumen: pd.DataFrame, file_path: str):
     df_resumen.to_excel(file_path, index=False)
     print(f"Archivo guardado en '{file_path}'")
@@ -322,40 +328,8 @@ def procesar_encuesta(encuesta_file: str, estudiantes_file: str, output_dir: str
     df_encuesta = load_encuesta(encuesta_file)
     df_estudiantes = load_estudiantes(estudiantes_file)
 
-    # --- Resumen de sedes usando tabla dinámica ---
-
     # --- Marcar respuestas ---
     df_estudiantes = marcar_respuestas(df_estudiantes, df_encuesta)
-
-    total_respuestas_sede = df_estudiantes.groupby("SEDE")["RESPONDIO"].sum().sum()
-    total_respuestas_escuela = df_estudiantes[df_estudiantes["ESCUELA"].isin([
-        "Administración y Negocios",
-        "Comunicación",
-        "Construcción",
-        "Diseño",
-        "Informática y Telecomunicaciones",
-        "Ingeniería, Medio Ambiente y Recursos Naturales",
-        "Salud y Bienestar",
-        "Turismo y Hospitalidad",
-        "Gastronomía"
-    ])].groupby("ESCUELA")["RESPONDIO"].sum().sum()
-
-    print("Total respuestas por sede:", total_respuestas_sede)
-    print("Total respuestas por escuela:", total_respuestas_escuela)
-    print("Diferencia (respuestas con escuelas no válidas):", total_respuestas_sede - total_respuestas_escuela)
-
-    print(df_estudiantes.loc[~df_estudiantes["ESCUELA"].isin([
-        "Administración y Negocios",
-        "Comunicación",
-        "Construcción",
-        "Diseño",
-        "Informática y Telecomunicaciones",
-        "Ingeniería, Medio Ambiente y Recursos Naturales",
-        "Salud y Bienestar",
-        "Turismo y Hospitalidad",
-        "Gastronomía"
-    ]), "ESCUELA"].unique())
-
 
     df_cantidad_estudiantes = pd.read_excel(cantidad_estudiantes_file)
     df_cantidad_estudiantes = df_cantidad_estudiantes.rename(columns={
