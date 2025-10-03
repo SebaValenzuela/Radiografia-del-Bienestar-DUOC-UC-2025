@@ -1,6 +1,40 @@
 import pandas as pd
 import os
 
+SEDES = [
+        "Alameda",
+        "Antonio Varas",
+        "Campus Arauco",
+        "Campus Nacimiento",
+        "Campus Villarrica",
+        "Concepción",
+        "Maipú",
+        "Melipilla",
+        "Padre Alonso de Ovalle",
+        "Plaza Norte",
+        "Plaza Oeste",
+        "Plaza Vespucio",
+        "Puente Alto",
+        "Puerto Montt",
+        "San Bernardo",
+        "San Carlos de Apoquindo",
+        "San Joaquín",
+        "Valparaíso",
+        "Viña del Mar",
+        "Online"
+    ]
+
+ESCUELAS_VALIDAS = [
+        "Administración y Negocios",
+        "Comunicación",
+        "Construcción",
+        "Diseño",
+        "Informática y Telecomunicaciones",
+        "Ingeniería, Medio Ambiente y Recursos Naturales",
+        "Salud y Bienestar",
+        "Turismo y Hospitalidad",
+        "Gastronomía"
+    ]
 
 def load_encuesta(file_path: str) -> pd.DataFrame:
     df = pd.read_excel(file_path)
@@ -15,47 +49,20 @@ def load_estudiantes(file_path: str) -> pd.DataFrame:
     return df
 
 def generar_sedes_matriculas(input_file: str, output_file: str):
-    # Lista de sedes que nos interesa
-    sedes = [
-        "Alameda",
-        "Antonio Varas",
-        "Campus Arauco",
-        "Campus Nacimiento",
-        "Campus Villarrica",
-        "Concepción",
-        "Maipú",
-        "Melipilla",
-        "Padre Alonso de Ovalle",
-        "Plaza Norte",
-        "Plaza Oeste",
-        "Plaza Vespucio",
-        "Puente Alto",
-        "Puerto Montt",
-        "San Bernardo",
-        "San Carlos de Apoquindo",
-        "San Joaquín",
-        "Valparaíso",
-        "Viña del Mar",
-        "Online"
-    ]
-
-    # --- Leer archivo ---
     df = pd.read_excel(input_file)
     df = df.rename(columns={
         "Etiquetas de fila": "SEDE",
         "Suma de Matrícula": "Cantidad de estudiantes"
     })
 
-    # --- Agrupar por sede sumando las escuelas ---
     sedes_totales = []
-    for sede in sedes:
+    for sede in SEDES:
         mask = df['SEDE'] == sede
         total = df.loc[mask, 'Cantidad de estudiantes'].sum()
         sedes_totales.append({'SEDE': sede, 'Cantidad de estudiantes': total})
 
     df_sedes = pd.DataFrame(sedes_totales)
 
-    # --- Guardar ---
     df_sedes.to_excel(output_file, index=False)
     print(f"Archivo '{output_file}' generado con éxito")
     return df_sedes
@@ -67,39 +74,14 @@ def marcar_respuestas(df_estudiantes: pd.DataFrame, df_encuesta: pd.DataFrame) -
 
 def resumen_por_sede(cantidad_estudiantes_file: str, df_estudiantes: pd.DataFrame = None, n_referencial_file: str = None) -> pd.DataFrame:
 
-    sedes = [
-        "Alameda",
-        "Antonio Varas",
-        "Campus Arauco",
-        "Campus Nacimiento",
-        "Campus Villarrica",
-        "Concepción",
-        "Maipú",
-        "Melipilla",
-        "Padre Alonso de Ovalle",
-        "Plaza Norte",
-        "Plaza Oeste",
-        "Plaza Vespucio",
-        "Puente Alto",
-        "Puerto Montt",
-        "San Bernardo",
-        "San Carlos de Apoquindo",
-        "San Joaquín",
-        "Valparaíso",
-        "Viña del Mar",
-        "Online"
-    ]
-
-    # --- Leer archivo de matrículas ---
     df = pd.read_excel(cantidad_estudiantes_file)
     df = df.rename(columns={
         "Etiquetas de fila": "SEDE",
         "Suma de Matrícula": "Cantidad de estudiantes"
     })
 
-    # --- Agrupar por sede sumando escuelas ---
     sedes_totales = []
-    for sede in sedes:
+    for sede in SEDES:
         mask = df['SEDE'] == sede
         total = df.loc[mask, 'Cantidad de estudiantes'].sum()
         sedes_totales.append({'SEDE': sede, 'Cantidad de estudiantes': int(total)})
@@ -109,21 +91,17 @@ def resumen_por_sede(cantidad_estudiantes_file: str, df_estudiantes: pd.DataFram
     if 'Online' in df_sedes['SEDE'].values:
         df_sedes.loc[df_sedes['SEDE'] == 'Online', 'Cantidad de estudiantes'] = 1893
 
-    # --- Si se entrega df_estudiantes, calcular respuestas y % de avance ---
     if df_estudiantes is not None:
-        # Marcar respuestas si aún no está hecho
         if 'RESPONDIO' not in df_estudiantes.columns:
-            df_estudiantes = marcar_respuestas(df_estudiantes, df_estudiantes)  # aquí df_estudiantes debe tener emails correctos
+            df_estudiantes = marcar_respuestas(df_estudiantes, df_estudiantes)
         
         df_sedes['SEDE'] = df_sedes['SEDE'].str.upper()
         df_estudiantes['SEDE'] = df_estudiantes['SEDE'].str.upper()
         print(set(df_sedes['SEDE']) - set(df_estudiantes['SEDE']))
-        # Columna de respuestas por sede
         df_sedes['Cantidad de respuestas'] = df_sedes['SEDE'].map(
             df_estudiantes.groupby('SEDE')['RESPONDIO'].sum()
         )
 
-        # Columna de % de avance
         df_sedes['% de avance respecto a total'] = (
             (df_sedes['Cantidad de respuestas'] / df_sedes['Cantidad de estudiantes'] * 100)
             .round(2)
@@ -132,8 +110,7 @@ def resumen_por_sede(cantidad_estudiantes_file: str, df_estudiantes: pd.DataFram
 
     if n_referencial_file:
         df_n = pd.read_excel(n_referencial_file)
-        # Sumar N referencial por sede
-        df_n['SEDE'] = df_n['SEDE'].str.upper().fillna(method='ffill')  # llenar nombres repetidos por sede
+        df_n['SEDE'] = df_n['SEDE'].str.upper().fillna(method='ffill')
         n_por_sede = df_n.groupby('SEDE')['N referencial'].sum()
         df_sedes['N referencial'] = (
             df_sedes['SEDE'].map(n_por_sede)
@@ -151,28 +128,12 @@ def resumen_por_sede(cantidad_estudiantes_file: str, df_estudiantes: pd.DataFram
 
 
 def resumen_por_escuela(df_estudiantes: pd.DataFrame, df_cantidad_estudiantes: pd.DataFrame) -> pd.DataFrame:
-    # Lista de escuelas válidas (tal como quieres que aparezcan)
-    ESCUELAS_VALIDAS = [
-        "Administración y Negocios",
-        "Comunicación",
-        "Construcción",
-        "Diseño",
-        "Informática y Telecomunicaciones",
-        "Ingeniería, Medio Ambiente y Recursos Naturales",
-        "Salud y Bienestar",
-        "Turismo y Hospitalidad",
-        "Gastronomía"
-    ]
-
-
-    # Filtrar solo las filas con escuelas válidas
     df_cantidad_estudiantes = df_cantidad_estudiantes[
         df_cantidad_estudiantes['ESCUELA'].isin(ESCUELAS_VALIDAS)
     ].copy()
 
     df_cantidad_estudiantes['Cantidad de estudiantes'] = df_cantidad_estudiantes['Cantidad de estudiantes'].fillna(0).astype(int)
 
-    # Agrupar por escuela
     resumen = (
         df_cantidad_estudiantes
         .groupby('ESCUELA')['Cantidad de estudiantes']
@@ -180,11 +141,9 @@ def resumen_por_escuela(df_estudiantes: pd.DataFrame, df_cantidad_estudiantes: p
         .reset_index()
     )
 
-    # Agregar cantidad de respuestas
     respuestas_por_escuela = df_estudiantes.groupby('ESCUELA')['RESPONDIO'].sum()
     resumen['Cantidad de respuestas'] = resumen['ESCUELA'].map(respuestas_por_escuela).fillna(0).astype(int)
 
-    # Porcentaje de avance
     resumen['% de avance respecto a total'] = (
         (resumen['Cantidad de respuestas'] / resumen['Cantidad de estudiantes'] * 100)
         .round(2)
@@ -194,41 +153,6 @@ def resumen_por_escuela(df_estudiantes: pd.DataFrame, df_cantidad_estudiantes: p
     return resumen[['ESCUELA', 'Cantidad de estudiantes', 'Cantidad de respuestas', '% de avance respecto a total']]
 
 def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiantes: pd.DataFrame, n_referencial_file: str = None) -> pd.DataFrame:
-    sedes = [
-        "Alameda",
-        "Antonio Varas",
-        "Campus Arauco",
-        "Campus Nacimiento",
-        "Campus Villarrica",
-        "Concepción",
-        "Maipú",
-        "Melipilla",
-        "Padre Alonso de Ovalle",
-        "Plaza Norte",
-        "Plaza Oeste",
-        "Plaza Vespucio",
-        "Puente Alto",
-        "Puerto Montt",
-        "San Bernardo",
-        "San Carlos de Apoquindo",
-        "San Joaquín",
-        "Valparaíso",
-        "Viña del Mar",
-        "Online"
-    ]
-
-    ESCUELAS_VALIDAS = [
-        "Administración y Negocios",
-        "Comunicación",
-        "Construcción",
-        "Diseño",
-        "Informática y Telecomunicaciones",
-        "Ingeniería, Medio Ambiente y Recursos Naturales",
-        "Salud y Bienestar",
-        "Turismo y Hospitalidad",
-        "Gastronomía"
-    ]
-
     sedes_asignadas = []
     escuelas_asignadas = []
     estudiantes_asignados = []
@@ -239,17 +163,15 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
     for idx, row in df_cantidad_estudiantes.iterrows():
         nombre = str(row['ESCUELA']).strip()
 
-        if nombre in sedes:
+        if nombre in SEDES:
             current_sede = nombre
         elif nombre in ESCUELAS_VALIDAS and current_sede:
             sedes_asignadas.append(current_sede)
             escuelas_asignadas.append(nombre)
 
-            # Cantidad de estudiantes desde df_cantidad_estudiantes
             cantidad_estudiantes = int(row.get('Cantidad de estudiantes', 0) or 0)
             estudiantes_asignados.append(cantidad_estudiantes)
 
-            # Calcular cantidad de respuestas desde df_estudiantes
             mask = (
                 (df_estudiantes['SEDE'].str.upper() == current_sede.upper()) &
                 (df_estudiantes['ESCUELA'] == nombre)
@@ -257,7 +179,6 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
             cantidad_respuestas = df_estudiantes.loc[mask, 'RESPONDIO'].sum()
             respuestas_asignadas.append(cantidad_respuestas)
 
-    # Crear DataFrame final
     df_resumen = pd.DataFrame({
         'SEDE': sedes_asignadas,
         'ESCUELA': escuelas_asignadas,
@@ -284,14 +205,12 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
 
     df_resumen = pd.concat([df_resumen, online_extra], ignore_index=True)
 
-    # Agregar porcentaje de avance
     df_resumen['% de avance respecto a total'] = (
         (df_resumen['Cantidad de respuestas'] / df_resumen['Cantidad de estudiantes'] * 100)
         .round(2)
         .astype(str) + '%'
     )
 
-    # Agregar N referencial si se entrega archivo
     if n_referencial_file:
         df_n = pd.read_excel(n_referencial_file)
         df_n['SEDE'] = df_n['SEDE'].str.upper().fillna(method='ffill')
@@ -303,7 +222,6 @@ def resumen_escuela_por_sede(df_cantidad_estudiantes: pd.DataFrame, df_estudiant
             axis=1
         )
 
-        # Agregar columna de encuestas restantes
         df_resumen['Encuestas restantes para N referencial'] = (
             df_resumen['N referencial'] - df_resumen['Cantidad de respuestas']
         ).astype(int)
@@ -321,7 +239,6 @@ def procesar_encuesta(encuesta_file: str, estudiantes_file: str, output_dir: str
     df_encuesta = load_encuesta(encuesta_file)
     df_estudiantes = load_estudiantes(estudiantes_file)
 
-    # --- Marcar respuestas ---
     df_estudiantes = marcar_respuestas(df_estudiantes, df_encuesta)
 
     df_cantidad_estudiantes = pd.read_excel(cantidad_estudiantes_file)
@@ -330,12 +247,10 @@ def procesar_encuesta(encuesta_file: str, estudiantes_file: str, output_dir: str
         "Suma de Matrícula": "Cantidad de estudiantes"
     })
 
-    # --- Resumen por escuela ---
     resumen_escuela = resumen_por_escuela(df_estudiantes, df_cantidad_estudiantes)
     resumen_sede = resumen_por_sede(cantidad_estudiantes_file, df_estudiantes, n_referencial_file)
     resumen_escuela_y_sede = resumen_escuela_por_sede(df_cantidad_estudiantes, df_estudiantes, n_referencial_file)
 
-    # --- Guardar archivos ---
     guardar_resumen(resumen_sede, os.path.join(output_dir, "resumen_sedes.xlsx"))
     guardar_resumen(resumen_escuela, os.path.join(output_dir, "resumen_escuelas.xlsx"))
     guardar_resumen(resumen_escuela_y_sede, os.path.join(output_dir, "resumen_escuelas_por_sede.xlsx"))

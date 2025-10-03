@@ -79,18 +79,16 @@ def crear_grafico_barras(df, col_categoria, col_valor, output_path, fontsize=12)
     bars = ax.bar(
         x,
         df_plot['_plot_val'],
-        color='#1f77b4',      # azul por defecto (puedes poner otro código HEX)
+        color='#1f77b4',
         edgecolor='black',
         width=0.4
     )
 
     ymax = max(100, df_plot['_plot_val'].max() * 1.1)
-    ax.set_ylim(0, 20)
+    ax.set_ylim(0, 70)
 
-    # mostrar eje como porcentaje (0..100 -> "0%..100%")
     ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=100, decimals=0))
 
-    # configuración visual similar a la original
     ax.tick_params(left=False, bottom=False)
     ax.set_xticks(x)
     ax.set_xticklabels(df_plot[col_categoria], rotation=45, ha='right', fontsize=fontsize)
@@ -118,13 +116,11 @@ def rellenar_tabla(slide, placeholder_name, df):
                 rows, cols, left, top, int(width), int(height)
             ).table
 
-            # ajustar anchos y altos
             for col in table.columns:
                 col.width = int((width*0.8) // cols)
             for row in table.rows:
                 row.height = int((height*0.6) // rows)
 
-            # encabezado
             for j, col_name in enumerate(df.columns):
                 cell = table.cell(0, j)
                 cell.text = str(col_name)
@@ -137,7 +133,6 @@ def rellenar_tabla(slide, placeholder_name, df):
                 run.font.bold = True
                 run.font.color.rgb = RGBColor(0, 0, 0)
 
-            # contenido
             for i in range(df.shape[0]):
                 for j in range(df.shape[1]):
                     cell = table.cell(i+1, j)
@@ -148,19 +143,13 @@ def rellenar_tabla(slide, placeholder_name, df):
                     run.font.size = Pt(8)
                     run.font.color.rgb = RGBColor(50, 50, 50)
 
-                    # Reglas de colores SOLO para tabla_avance_sedes
                     if placeholder_name == "tabla_avance_sedes" and df.columns[j] == "Cantidad de respuestas":
                         if "N referencial" in df.columns:
                             respuestas = df.iloc[i][j]
                             n_ref = df.iloc[i]["N referencial"]
-                            if n_ref > 0:
-                                ratio = respuestas / n_ref
-                                if ratio < 0.75:
-                                    cell.fill.solid()
-                                    cell.fill.fore_color.rgb = RGBColor(255, 165, 0)  # naranja
-                                else:
-                                    cell.fill.solid()
-                                    cell.fill.fore_color.rgb = RGBColor(0, 176, 80)  # verde
+                            if respuestas >= n_ref and n_ref > 0:
+                                cell.fill.solid()
+                                cell.fill.fore_color.rgb = RGBColor(0, 176, 80)  # verde
 
                     # Otras tablas mantienen el diseño original
                     elif df.columns[j] == "% de avance respecto a total":
